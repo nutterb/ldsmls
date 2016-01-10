@@ -1,4 +1,4 @@
-#' @name initialize_database
+#' @name startup_initialize_database
 #' @title Intitialize the MLS Membership Database
 #' 
 #' @description When the application is first started, it checks to see if the 
@@ -9,12 +9,16 @@
 #' @author Benjamin Nutter
 #' @export
 
-initialize_database <- function()
+startup_initialize_database <- function()
 {
   if (file.exists(file.path(getOption("mls_db_dir"), "congregation.db"))) return(TRUE)
+
+  if (!dir.exists("C:/ldsmls")) dir.create("C:/ldsmls")
   
-  system(paste0(sqlite_exe(), " C:/ldsmls/congregation "), 
+  system(paste0("\"", sqlite_exe(), "\" \"", 
+                file.path(getOption("mls_db_dir"), "congregation.db\"")), 
                 input=query_create_database())
+  return(TRUE)
 }
 
 #* Utility Functions

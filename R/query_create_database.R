@@ -1,7 +1,7 @@
 #' @name query_create_database
 #' @title Create the Tables for the Application Database
 #' 
-#' @description When \link{\code{initialize_database}} runs, it executes a query 
+#' @description When \code{\link{startup_initialize_database}} runs, it executes a query 
 #'   to create the database and various tables used by the application.  The SQL
 #'   code used to generate those tables is called by this function.
 #'   
@@ -11,7 +11,17 @@
 query_create_database <- function()
 {
   paste0("CREATE TABLE Membership ",
-         "  (ID INT PRIMARY KEY); ", 
+         "  (ID VARCHAR, ",
+         "   Birth_Date DATE, ", 
+         "   Sex VARCHAR, ",
+         "   Full_Name VARCHAR, ",
+         "   Maiden_Name VARCHAR); ",
+         " ",
+         "CREATE TABLE Congregation ",
+         "  (Unit_Name VARCHAR, ",
+         "   Unit_Number VARCHAR, ",
+         "   Unit_Type VARCHAR, ",
+         "   Bishop VARCHAR); ",
          " ",
          "CREATE TABLE Callings ",
          "  (OID INT PRIMARY KEY, ",

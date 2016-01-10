@@ -1,8 +1,8 @@
 Package: ldsmls
 Type: Package
 Title: Extensions of Member and Leader Services
-Version: 0.10.2
-Date: 2015-11-13
+Version: 0.0.1
+Date: 2015-12-31
 Author: Benjamin Nutter <benjamin.nutter@gmail.com>
 Maintainer: Benjamin Nutter <benjamin.nutter@gmail.com>
 Description: Local congregations of the Church of Jesus Christ of Latter-day
@@ -12,16 +12,19 @@ Description: Local congregations of the Church of Jesus Christ of Latter-day
   not offered by the MLS application.
 License: MIT + file LICENSE
 Depends:
-  R (>= 3.0.0),
-  pixiedust,
-  shiny,
-  shinydust
+  R (>= 3.0.0)
 Imports:
-    ArgumentCheck, 
+    base64enc,
+    dplyr,
+    lubridate,
+    magrittr,
+    pixiedust,
+    rmarkdown,
+    RSQLite,
+    shiny
 Suggests:
     knitr,
     testthat
-VignetteBuilder: knitr
 LazyLoad: yes
 LazyData: true
 URL: https://github.com/nutterb/ldsmls

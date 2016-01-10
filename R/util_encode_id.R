@@ -1,4 +1,4 @@
-#' @name encode_id
+#' @name util_encode_id
 #' @title Generate a Unique Identifier for the Database
 #' 
 #' @description A unique identifier for each member is critical to correctly
@@ -20,14 +20,14 @@
 #' 
 #' @export
 
-encode_id <- function(x)
+util_encode_id <- function(x)
 {
   charToRaw(x) %>%
-    base64encode() %>%
+    base64enc::base64encode() %>%
     strsplit("") %>%
     unlist() %>%
     `[`(-c(4:7, 9:12, 21:24)) %>% #, 11, 17, 37)) %>%
     paste0(collapse = "") %>%
     charToRaw() %>%
-    base64encode()
+    base64enc::base64encode()
 }

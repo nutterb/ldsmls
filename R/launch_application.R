@@ -6,11 +6,18 @@
 #'   database and tables.  After this check, the application is launched.
 #'   
 #' @author Benjamin Nutter
+#' 
+#' @examples
+#' \dontrun{
+#'   launch_application()
+#' }
+#' 
 #' @export
 
 launch_application <- function()
 {
-  if (!file.exists("C:/ldsmls/congregation")) initialize_database()
+  if (!file.exists("C:/ldsmls/congregation")) startup_initialize_database()
   
-  shiny::runApp(system.file("application", package = "ldsmls"))
+  shiny::runApp(system.file("application", package = "ldsmls"),
+                launch.browser = TRUE)
 }

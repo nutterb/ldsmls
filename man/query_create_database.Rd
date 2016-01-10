@@ -7,7 +7,7 @@
 query_create_database()
 }
 \description{
-When \link{\code{initialize_database}} runs, it executes a query
+When \code{\link{startup_initialize_database}} runs, it executes a query
   to create the database and various tables used by the application.  The SQL
   code used to generate those tables is called by this function.
 }

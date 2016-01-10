@@ -11,6 +11,11 @@ Start the Application.  First, the system checks that the database
   file has been initialized in the appropriate location.  If not, it creates the
   database and tables.  After this check, the application is launched.
 }
+\examples{
+\dontrun{
+  launch_application()
+}
+}
 \author{
 Benjamin Nutter
 }
