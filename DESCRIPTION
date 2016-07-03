@@ -6,13 +6,13 @@ Date: 2015-12-31
 Author: Benjamin Nutter <benjamin.nutter@gmail.com>
 Maintainer: Benjamin Nutter <benjamin.nutter@gmail.com>
 Description: Local congregations of the Church of Jesus Christ of Latter-day
-  Saints use Member and Leader Services (MLS) to coordinate membership records
-  with Church headquarters.  The ldsmls package uses the information in 
-  MLS to provide additional local utilities for the congregations that are 
-  not offered by the MLS application.
+    Saints use Member and Leader Services (MLS) to coordinate membership records
+    with Church headquarters.  The ldsmls package uses the information in
+    MLS to provide additional local utilities for the congregations that are
+    not offered by the MLS application.
 License: MIT + file LICENSE
 Depends:
-  R (>= 3.0.0)
+    R (>= 3.0.0)
 Imports:
     base64enc,
     dplyr,
@@ -29,3 +29,4 @@ LazyLoad: yes
 LazyData: true
 URL: https://github.com/nutterb/ldsmls
 BugReports: https://github.com/nutterb/ldsmls/issues
+RoxygenNote: 5.0.1

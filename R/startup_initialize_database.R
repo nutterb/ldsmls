@@ -11,14 +11,46 @@
 
 startup_initialize_database <- function()
 {
-  if (file.exists(file.path(getOption("mls_db_dir"), "congregation.db"))) return(TRUE)
-
+  if (file.exists(file.path(getOption("mls_db_dir"), "congregation.db"))) return(NULL)
+  
   if (!dir.exists("C:/ldsmls")) dir.create("C:/ldsmls")
+  
+  sql <- 
+    system.file("SQL/create_tables.sql", package = "ldsmls") %>%
+    readLines()
   
   system(paste0("\"", sqlite_exe(), "\" \"", 
                 file.path(getOption("mls_db_dir"), "congregation.db\"")), 
-                input=query_create_database())
-  return(TRUE)
+         input=sql)
+  
+  ch_local <- dbConnect(RSQLite::SQLite(), "C:/ldsmls/congregation.db")
+  on.exit(dbDisconnect(ch_local))
+  
+  system.file("CallingsData/Organizations.csv", package = "ldsmls") %>%
+    read.csv(stringsAsFactors = FALSE) %>%
+    dplyr::mutate(
+      Custom = 0,
+      value = sprintf("(%s, '%s', %s, %s)",
+                      OID, Organization, Custom, Enabled)
+    ) %>%
+    `$`("value") %>%
+    paste0(collapse = ", ") %>%
+    sprintf("INSERT INTO Organization (OID, OrganizationName, Custom, Enabled) VALUES %s;",
+            .) %>%
+    dbSendQuery(ch_local, .)
+  
+  system.file("CallingsData/StandardCallings.csv", package = "ldsmls") %>%
+    read.csv(stringsAsFactors = FALSE) %>%
+    dplyr::mutate(
+      Custom = 0,
+      value = sprintf("(%s, %s, %s, '%s', %s, %s)",
+                      OID, Organization, OrderID, Position, Custom, Enabled)
+    ) %>%
+    `$`("value") %>%
+    paste0(collapse = ", ") %>%
+    sprintf("INSERT INTO Position (OID, Organization, OrderID, Position, Custom, Enabled) VALUES %s;",
+            .) %>%
+    dbSendQuery(ch_local, .)
 }
 
 #* Utility Functions

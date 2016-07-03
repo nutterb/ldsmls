@@ -4,65 +4,66 @@
 #' @description Inserts or updates membership records from a CSV file into 
 #'   the Membership table.
 #'   
-#' @param input the input object from the shiny session
+#' @param Import The data from the file being imported (Membership())
+#' @param Current The Currently stored data (RV$Membership)
 #' 
 #' @export
 
-btn_importRecords <- function(input)
+btn_importRecords <- function(Import, Current, conn)
 {
-  Membership <- 
-    utils::read.csv(input$membershipFile$datapath,
-                    stringsAsFactors = FALSE,
-                    na = "") %>%
-    dplyr::mutate(Birth.Date = as.Date(Birth.Date, format = "%d %b %Y"), 
-                  Full.Name = gsub("'", "''", Full.Name),
-                  Maiden.Name = gsub("'", "''", Maiden.Name),
-                  Name = ifelse(is.na(Maiden.Name),
-                                Full.Name, 
-                                Maiden.Name),
-                  idstring = paste0(Record.Number, Birth.Date, "1234", Name),
-                  ID = vapply(idstring, util_encode_id, character(1))) %>%
-    dplyr::filter(!is.na(Record.Number)) %>%
-    dplyr::select(ID, Birth.Date, Sex, Full.Name, Maiden.Name) %>%
-    dplyr::mutate(Birth.Date = format(Birth.Date, "%Y-%m-%d")) %>%
-    stats::setNames(c("ID", "Birth_Date", "Sex", "Full_Name", "Maiden_Name"))
-  
-  conn <- RSQLite::dbConnect(RSQLite::SQLite(),
-                             util_databasePath())
-  Current <- RSQLite::dbReadTable(conn, "Membership")
-  
-  for (i in 1:nrow(Membership))
+  if (nrow(Current))
   {
-    if (!Membership$ID[i] %in% Current$ID[i])
-    {
-      query <- 
-        paste0("INSERT INTO Membership ",
-               "(ID, Birth_Date, Sex, Full_Name, Maiden_Name) ",
-               "VALUES ",
-               "(", 
-               util_sqlValuePrep(Membership$ID[i]), ", ",
-               util_sqlValuePrep(Membership$Birth_Date[i]), ", ",
-               util_sqlValuePrep(Membership$Sex[i]), ", ",
-               util_sqlValuePrep(Membership$Full_Name[i]), ", ",
-               util_sqlValuePrep(Membership$Maiden_Name[i]), ")")
-                                        
-    }
-    else
-    {
-      query <-  
-        paste0("UPDATE Membership SET ",
-               "Birth_Date = ", util_sqlValuePrep(Membership$Birth_Date[i]), ", ",
-               "Sex = ", util_sqlValuePrep(Membership$Sex[i]), ", ",
-               "Full_Name = ", util_sqlValuePrep(Membership$Full_Name[i]), ", ",
-               "Maiden_Name = ", util_sqlValuePrep(Membership$Maiden_Name[i]), " ",
-               "WHERE ID = ", util_sqlValuePrep(Membership$ID[i]))
-    }
-    
-    RSQLite::dbSendQuery(conn, query)
+    New <- Import[!Import$ID %in% Current$MemberID, ]
+    Exist <- Import[Import$ID %in% Current$MemberID, ]
   }
-  
-  RSQLite::dbDisconnect(conn)
-}
+  else
+  {
+    New <- Import
+    Exist <- Current
+  }
 
-utils::globalVariables(c("Birth.Date", "Full.Name", "Maiden.Name",
-                  "Sex", "Record.Number", "Name", "idstring", "ID"))
+  if (nrow(New))
+  {
+    sql <- 
+      New %>%
+      mutate(sql = sprintf("('%s', %s, '%s', '%s', %s, 1)",
+                           ID, 
+                           format(Birth_Date,
+                                  format = "%Y-%m-%d"),
+                           Sex, 
+                           gsub("'", "''", Full_Name),
+                           ifelse(is.na(Maiden_Name), 
+                                  "NULL", 
+                                  paste0("'", gsub("'", "''", Maiden_Name), "'")))) %>%
+      `$`("sql") 
+      
+      dbSendQuery(
+        conn = conn,
+        statement =
+          paste0("INSERT INTO Membership ",
+                 "(MemberID, BirthDate, Sex, FullName, MaidenName, Enabled) ",
+                 "VALUES ",
+                 paste(sql, collapse = ", "))
+      )
+ 
+    # dbSendPreparedQuery(
+    #   conn = ch,
+    #   statement = paste0("INSERT INTO Membership ",
+    #                      "(MemberID, BirthDate, Sex, FullName, MaidenName, Enabled) ",
+    #                      "VALUES ",
+    #                      "(?, ?, ?, ?, ?, 1);"),
+    #   bind.table = dplyr::select(New, ID, Birth_Date, Sex, Full_Name, Maiden_Name)
+    # )
+  }
+  # 
+  # if (nrow(Exist))
+  # {
+  #   dbSendPreparedQuery(
+  #     conn = ch,
+  #     statement = paste0("UPDATE Membership ",
+  #                        "SET BirthDate = ?, Sex = ?, FullName = ?, ",
+  #                        "  MaidenName = ? WHERE MemberID = ?"),
+  #     bind.table = Import[, c("Birth_Date", "Sex", "Full_Name", "Maiden_Name", "ID")]
+  #   )
+  # }
+}

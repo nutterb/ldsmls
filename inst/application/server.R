@@ -3,130 +3,208 @@ library(shiny)
 library(RSQLite)
 library(dplyr)
 
-CONFIGURED <- startup_congregationConfigured()
+startup_initialize_database()
 
 shinyServer(function(input, output, session){
-  CONFIG <- reactiveValues(congregationConfigured = CONFIGURED)
   
-  output$msg_initializeDatabase <- 
-    renderText({
-      if (msg() == "SUCCESS") "" else msg()
-    })
+  #*********************************************
+  #* Global Variables
+  
+  ch <- dbConnect(RSQLite::SQLite(), "C:/ldsmls/congregation.db")
 
+  #*********************************************
+  #* Reactive Value Lists
+  Congregation <- reactiveValues(
+    Configured = startup_congregation_configured()
+  )
+  
+  RV <- reactiveValues(
+    Congregation = dbReadTable(ch, "Congregation"),
+    Organization = dbReadTable(ch, "Organization"),
+    Position = dbReadTable(ch, "Position"),
+    Membership = dbReadTable(ch, "Membership")
+  )
+  
+
+  #*********************************************
+  #* Reactive Values
+  
+  Membership <- reactive({
+    req(input[["membership_file"]])
+    utils::read.csv(input$membership_file$datapath,
+                    stringsAsFactors = FALSE,
+                    na = "") %>%
+      dplyr::mutate(Birth.Date = as.Date(Birth.Date, format = "%d %b %Y"), 
+                    Name = ifelse(is.na(Maiden.Name),
+                                  Full.Name, 
+                                  Maiden.Name),
+                    idstring = paste0(Record.Number, Birth.Date, RV$Congregation$UnitNumber, Name),
+                    ID = vapply(idstring, util_encode_id, character(1))) %>%
+      dplyr::filter(!is.na(Record.Number)) %>%
+      dplyr::select(ID, Birth.Date, Sex, Full.Name, Maiden.Name) %>%
+      dplyr::mutate(Birth.Date = format(Birth.Date, "%Y-%m-%d")) %>%
+      stats::setNames(c("ID", "Birth_Date", "Sex", "Full_Name", "Maiden_Name"))
+  })
+  
+  #*********************************************
+  #* Control Toggles
+  
   observe({
-    CONFIG$congregationConfigured <- msg() == "SUCCESS"
+    toggle(id = "congregation_not_defined",
+           condition = !Congregation$Configured)
+    toggle(id = "congregation_defined",
+           condition = Congregation$Configured)
   })
   
-  #*******************************************************
-  #*******************************************************
-  #*  USER INTERFACE CONSTRUCTION
-  #*******************************************************
-  #*******************************************************
-  
-  output$ui_initialize <- renderUI({
-    if (CONFIG$congregationConfigured) 
-    {
-        fluidPage(
-          titlePanel(title = "MLS Extended Utilities"),
-          tabsetPanel(
-            ui_reports(),
-            ui_callings(),
-            tabPanel(
-              title = "Sacrament Meeting Agendas"
-            ),
-            ui_importRecords(input),
-            ui_configureDatabase(input, output)
-          )
-        )
-    }
-    else{
-      ui_initializeDatabase(input)
-    }
+  observe({
+    toggleState(id = "btn_configure_congregation",
+                condition = trimws(input[["unit_number"]]) != "")
   })
   
+  observe({
+    req(input[["organization_selector"]])
+    allow_add <- 
+      RV$Position %>%
+      filter(Organization == input[["organization_selector"]]) %>%
+      `$`("Position") %>%
+      (function(x) all(!is.na(x) & trimws(x) != ""))
 
+    toggle(id = "btn_add_custom_position",
+           condition = allow_add)
+  })
+           
   
-  #*******************************************************
-  #*******************************************************
-  #* ACTION BUTTONS
-  #* 1. Initialize Unit Database (input$btn_initializeDatabase)
-  #* 2. Configure Unit Database (input$btn_configureDatabase)
-  #* 3. Preview Membership Records (input$membershipFile)
-  #* 4. Import Membership Records (input$btn_importRecords)
-  #* 5. Render Reports (input$btn_renderReport)
-  #*******************************************************
-  #*******************************************************
-  
-  #* 1. Initialize Unit Database (input$btn_initializeDatabase)
-  msg <- eventReactive(
-    input$btn_initializeDatabase,
+  #*********************************************
+  #* Action Buttons
+
+  observeEvent(
+    input[["btn_configure_congregation"]],
     {
-      btn_initializeDatabase(input)
+      btn_configure_congregation(input = input)
+      Congregation$Configured <- TRUE
     }
   )
   
-  #* 2. Configure Unit Database (input$btn_configureDatabase)
   observeEvent(
-    input$btn_configureDatabase,
-    btn_configureDatabase(input)
+    input[["btn_add_custom_position"]],
+    {
+      btn_add_custom_position(input, Position = RV$Position)
+      RV$Position <- dbReadTable(ch, "Position")
+    }
   )
   
-  #* 3. Preview Membership File (input$membershipFile)
-  output$membershipFile <- 
-    renderTable({
-      if (is.null(input$membershipFile)) return(NULL)
-      
-      read.csv(input$membershipFile$datapath,
-               stringsAsFactors = FALSE,
-               na = "") %>%
-        mutate(Birth.Date = as.Date(Birth.Date, format = "%d %b %Y"), 
-               Name = ifelse(Sex == "female",
-                             Maiden.Name, 
-                             Full.Name),
-               idstring = paste0(Record.Number, Birth.Date, "1234", Name),
-               ID = vapply(idstring, util_encode_id, character(1))) %>%
-        filter(Record.Number != "") %>%
-        select(Birth.Date, Sex, Full.Name, Maiden.Name) %>%
-        mutate(Birth.Date = format(Birth.Date, "%Y-%m-%d")) %>%
-        setNames(c("Birth_Date", "Sex", "Full_Name", "Maiden_Name"))
-      
-      
-    })
-  
-  #* 4. Import Membership Records (input$btn_importRecords)
   observeEvent(
-    input$btn_importRecords,
-    btn_importRecords(input)
+    input[["btn_save_custom_position_changes"]],
+    {
+      permit_save <- btn_save_custom_position_changes(input)
+      if (!permit_save)
+      {
+        info(paste0("At least one position name was left blank. ",
+                    "Please provide a name for every position ",
+                    "before saving."))
+      }
+      RV$Position <- dbReadTable(ch, "Position")
+    }
   )
   
-  #* 5. Render Reports (input$btn_renderReport)
   observeEvent(
-    input$btn_renderReport,
-    btn_renderReport(input)
+    input[["btn_import_record"]],
+    {
+      btn_importRecords(Membership(), RV$Membership, conn = ch)
+      RV$Membership <- dbReadTable(ch, "Membership")
+    }
   )
   
-  #*******************************************************
-  #*******************************************************
-  #* REPORT PANELS
-  #*******************************************************
-  #*******************************************************
+  observeEvent(
+    input[["btn_enable_unit_number_update"]],
+    {
+      info(paste0("Editing the unit number will alter the way internal ",
+                  "membership identifiers are generated. Data existing ",
+                  "in the database _will_ be corrupted if you proceed."))
+      enable("update_unit_number")
+    }
+  ) 
   
-  output$report <- 
-    renderText({
-      switch(input$reportSelection,
-             "Upcoming Baptisms" = rpt_baptisms(input$rpt_dateRange[[1]],
-                                                input$rpt_dateRange[[2]],
-                                                cat = FALSE),
-             "Upcoming Youth" = rpt_youth(input$rpt_dateRange[[1]],
-                                          input$rpt_dateRange[[2]],
-                                          cat = FALSE),
-             "Upcoming Nursery" = rpt_nursery(input$rpt_dateRange[[1]],
-                                             input$rpt_dateRange[[2]],
-                                             cat = FALSE),
-             "Upcoming Sunbeam" = rpt_sunbeam(input$rpt_dateRange[[1]],
-                                              input$rpt_dateRange[[2]],
-                                              cat = FALSE)
-      )
-    })
+  observeEvent(
+    input[["btn_update_congregation"]],
+    {
+      btn_configure_congregation(input = input)
+    }
+  )
   
+  #*********************************************
+  #* Active Event Observers
+  
+  observe({
+    position_enabler <- names(input)[grepl("position_enable", names(input))]
+    lapply(
+      position_enabler,
+      function(x)
+      {
+        observeEvent(
+          input[[x]],
+          {
+            dbSendPreparedQuery(
+              conn = ch,
+              statement = paste0("UPDATE Position ",
+                                 "SET Enabled = ? ",
+                                 "WHERE OID = ?;"),
+              bind.data = data.frame(Enabled = as.numeric(input[[x]]),
+                                     OID = as.numeric(sub("position_enable_", "", x)))
+            )
+            RV$Position <- dbReadTable(ch, "Position")
+          }
+        )
+      }
+    )
+  })
+  
+  
+  #*********************************************
+  #* Passive Event Observers
+  
+  
+  #*********************************************
+  #* Output Elements
+  
+  output$pos_select_organization <- renderUI({
+    shiny::selectInput(
+      inputId = "organization_selector",
+      label = "Organization",
+      choices = RV$Organization[["OID"]] %>% setNames(RV$Organization[["OrganizationName"]])
+    )
+  })
+  
+  output$pos_edit_position <- renderUI({
+    req(input[["organization_selector"]])
+    ui_configure_position(input, Position = RV$Position)
+  })
+  
+  output$ui_membership_file_display <- renderUI({
+    Membership() %>%
+      select(Full_Name, Birth_Date, Sex) %>%
+      arrange(Full_Name) %>%
+      dust(justify = "left") %>%
+      medley_mls() %>%
+      print(asis = FALSE) %>%
+      HTML()
+  })
+  
+  output$ui_congregation_parameters <- renderUI({
+    ui_congregation_parameters(RV$Congregation)
+  })
+  
+  #*********************************************
+  #* Download Handlers
+  
+  
+  
+  #*********************************************
+  #* Value check output
+
+  output$value_check <- renderPrint({ 
+    RV$Membership
+  })
+  
+ 
 })

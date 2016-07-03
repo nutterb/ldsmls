@@ -14,10 +14,10 @@
 #' 
 #' @export
 
-launch_application <- function()
+launch_application <- function(launch_browser)
 {
   if (!file.exists("C:/ldsmls/congregation")) startup_initialize_database()
   
   shiny::runApp(system.file("application", package = "ldsmls"),
-                launch.browser = TRUE)
+                launch.browser = launch_browser)
 }
