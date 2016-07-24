@@ -17,14 +17,15 @@ startup_initialize_database <- function()
   
   sql <- 
     system.file("SQL/create_tables.sql", package = "ldsmls") %>%
-    readLines()
+    readLines() %>%
+    paste()
   
   system(paste0("\"", sqlite_exe(), "\" \"", 
                 file.path(getOption("mls_db_dir"), "congregation.db\"")), 
          input=sql)
   
-  ch_local <- dbConnect(RSQLite::SQLite(), "C:/ldsmls/congregation.db")
-  on.exit(dbDisconnect(ch_local))
+  ch_local <- RSQLite::dbConnect(RSQLite::SQLite(), "C:/ldsmls/congregation.db")
+  on.exit(RSQLite::dbDisconnect(ch_local))
   
   system.file("CallingsData/Organizations.csv", package = "ldsmls") %>%
     read.csv(stringsAsFactors = FALSE) %>%
@@ -32,12 +33,12 @@ startup_initialize_database <- function()
       Custom = 0,
       value = sprintf("(%s, '%s', %s, %s)",
                       OID, Organization, Custom, Enabled)
-    ) %>%
-    `$`("value") %>%
+    ) %$% 
+    value %>%
     paste0(collapse = ", ") %>%
     sprintf("INSERT INTO Organization (OID, OrganizationName, Custom, Enabled) VALUES %s;",
             .) %>%
-    dbSendQuery(ch_local, .)
+    RSQLite::dbSendQuery(ch_local, .)
   
   system.file("CallingsData/StandardCallings.csv", package = "ldsmls") %>%
     read.csv(stringsAsFactors = FALSE) %>%
@@ -45,12 +46,12 @@ startup_initialize_database <- function()
       Custom = 0,
       value = sprintf("(%s, %s, %s, '%s', %s, %s)",
                       OID, Organization, OrderID, Position, Custom, Enabled)
-    ) %>%
-    `$`("value") %>%
+    ) %$%
+    value %>%
     paste0(collapse = ", ") %>%
     sprintf("INSERT INTO Position (OID, Organization, OrderID, Position, Custom, Enabled) VALUES %s;",
             .) %>%
-    dbSendQuery(ch_local, .)
+    RSQLite::dbSendQuery(ch_local, .)
 }
 
 #* Utility Functions

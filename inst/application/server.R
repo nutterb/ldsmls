@@ -3,6 +3,8 @@ library(shiny)
 library(RSQLite)
 library(dplyr)
 
+options(pixiedust_print_method = "html")
+
 startup_initialize_database()
 
 shinyServer(function(input, output, session){
@@ -22,7 +24,8 @@ shinyServer(function(input, output, session){
     Congregation = dbReadTable(ch, "Congregation"),
     Organization = dbReadTable(ch, "Organization"),
     Position = dbReadTable(ch, "Position"),
-    Membership = dbReadTable(ch, "Membership")
+    Membership = dbReadTable(ch, "Membership"),
+    CallingTrack = dbReadTable(ch, "CallingTrack")
   )
   
 
@@ -82,6 +85,15 @@ shinyServer(function(input, output, session){
     {
       btn_configure_congregation(input = input)
       Congregation$Configured <- TRUE
+    }
+  )
+  
+  observeEvent(
+    input[["call_add_new_calling"]],
+    {
+      dbSendQuery(ch,
+                  "INSERT INTO Calling (MemberID) VALUES (NULL)")
+      RV$Calling <- dbReadTable(ch, "Calling")
     }
   )
   
@@ -167,6 +179,43 @@ shinyServer(function(input, output, session){
   #*********************************************
   #* Output Elements
   
+  output$call_track <- renderUI({
+    req(nrow(RV$Calling) > 0)
+    
+    Track <- RV$CallingTrack
+    Track$Member <-
+      selectInput_cell(
+        inputId = paste0("Member_", Track$OID),
+        choices = RV$Membership$MemberID %>% setNames(RV$Membership$FullName) %>% c(" " = NA, .),
+        selected = Track$MemberID
+      )
+    Track$Organization <- 
+      selectInput_cell(
+        inputId = paste0("Organization_", RV$CallingTrack$OID),
+        choices = RV$Organization$OID %>% setNames(RV$Organization$OrganizationName) %>% c(" " = NA, .),
+        selected = Track$OrganizationID
+      )
+    
+    makePositionList <- function(OrgID, Position)
+    {
+      Pos <- filter(Position, Organization == OrgID) 
+      Pos$OID %>% setNames(Pos$Position) %>% c(" " = NA, .)
+    }
+    
+    Track$Position <- 
+      selectInput_cell(
+        inputId = paste0("Position_", Track$OID),
+        choices = sapply(Track$OrganizationID, makePositionList, RV$Position),
+        selected = Track$PositionID
+      )
+
+    
+    select(Track, Member, Organization, Position) %>%
+      dust() %>%
+      print(asis = FALSE) %>%
+      HTML()
+  })
+  
   output$pos_select_organization <- renderUI({
     shiny::selectInput(
       inputId = "organization_selector",
@@ -203,7 +252,7 @@ shinyServer(function(input, output, session){
   #* Value check output
 
   output$value_check <- renderPrint({ 
-    RV$Membership
+    nrow(RV$Calling)
   })
   
  

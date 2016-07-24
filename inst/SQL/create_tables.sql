@@ -46,3 +46,23 @@ CREATE TABLE Release
    Decide BOOLEAN, 
    ReleaseDate DATE, 
    RecordRelease BOOLEAN); 
+   
+CREATE VIEW CallingTrack AS
+  SELECT C.OID, C.MemberId, M.FullName,
+         O.OID AS OrganizationID,
+         O.OrganizationName,
+         P.OID AS PositionID,
+         P.Position,
+         C.Decide,
+         C.Extend,
+         C.Sustain,
+         C.RecordSustain,
+         C.SetApart,
+         C.RecordSetApart
+  FROM Calling C 
+    LEFT JOIN Membership M
+      ON C.MemberID = M.MemberID
+    LEFT JOIN Organization O
+      ON C.Organization = O.OID
+    LEFT JOIN Position P
+      ON C.Position = P.OID;

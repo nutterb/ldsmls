@@ -59,6 +59,7 @@ shinyUI(
             tabsetPanel(
               tabPanel(
                 title = "Callings",
+                uiOutput("call_track"),
                 actionButton(
                   inputId = "call_add_new_calling",
                   label = "Add Another Calling"
