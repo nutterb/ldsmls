@@ -1,0 +1,13 @@
+C:\Users\Nutter\Documents\GitHub\ldsmls\MEU\MEU\bin\Debug\MEU.exe.config
+C:\Users\Nutter\Documents\GitHub\ldsmls\MEU\MEU\bin\Debug\MEU.exe
+C:\Users\Nutter\Documents\GitHub\ldsmls\MEU\MEU\bin\Debug\MEU.pdb
+C:\Users\Nutter\Documents\GitHub\ldsmls\MEU\MEU\obj\Debug\MEU.csprojResolveAssemblyReference.cache
+C:\Users\Nutter\Documents\GitHub\ldsmls\MEU\MEU\obj\Debug\MEU.Properties.Resources.resources
+C:\Users\Nutter\Documents\GitHub\ldsmls\MEU\MEU\obj\Debug\MEU.csproj.GenerateResource.Cache
+C:\Users\Nutter\Documents\GitHub\ldsmls\MEU\MEU\obj\Debug\MEU.exe
+C:\Users\Nutter\Documents\GitHub\ldsmls\MEU\MEU\obj\Debug\MEU.pdb
+C:\Users\Nutter\Documents\GitHub\ldsmls\MEU\MEU\obj\Debug\MEU.Form1.resources
+C:\Users\Nutter\Documents\GitHub\ldsmls\MEU\MEU\bin\Debug\EntityFramework.dll
+C:\Users\Nutter\Documents\GitHub\ldsmls\MEU\MEU\bin\Debug\EntityFramework.SqlServer.dll
+C:\Users\Nutter\Documents\GitHub\ldsmls\MEU\MEU\bin\Debug\EntityFramework.xml
+C:\Users\Nutter\Documents\GitHub\ldsmls\MEU\MEU\bin\Debug\EntityFramework.SqlServer.xml
