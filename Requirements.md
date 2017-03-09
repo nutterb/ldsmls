@@ -1,5 +1,7 @@
 # MLS Extension Utilities
-MLS Extension Utilities is a WinForms application that provides additional utilities
+MLS Extension Utilities is a WinForms application that provides structured, relational tools to assist with the day-to-day management of LDS wards and branches. The core features of the application a
+
+1. Tracking callings from consideration through setting apart through release.
 ## System Requirements 
 
 * Windows 7
